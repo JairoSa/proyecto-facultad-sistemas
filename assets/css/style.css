@@ -1,0 +1,51 @@
+/* Estilo Login */
+body.login-bg {
+  background: #f0f2f5;
+  background-image: linear-gradient(135deg, rgba(0, 74, 173, 0.8) 0%, rgba(0, 123, 255, 0.9) 100%), url('../img/background_campus.jpg');
+  background-size: cover;
+  background-position: center;
+}
+.login-card {
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  max-width: 450px;
+  border: none;
+}
+
+/* Estilos Generales y Tarjetas */
+.dashboard-card, .publication-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 15px;
+  border: none;
+}
+.dashboard-card:hover, .publication-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+}
+.publication-card .card-img-top {
+    height: 200px;
+    object-fit: cover;
+}
+
+/* Efecto scroll en el header */
+header.navbar-scroll {
+  background-color: #003c8a !important; /* Un azul más oscuro */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transition: all 0.4s ease;
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #007bff;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #0056b3;
+}
