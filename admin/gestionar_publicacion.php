@@ -1,11 +1,19 @@
 <?php
 session_start();
-// ... (verificación de sesión de admin) ...
+if (!isset($_SESSION['rol']) || $_SESSION['rol'] != 'admin') {
+    header("Location: ../index.php");
+    exit();
+}
 
 include('../config/db.php');
 
+if (empty($_SESSION['form_token'])) {
+    $_SESSION['form_token'] = bin2hex(random_bytes(32));
+}
+$token = $_SESSION['form_token'];
+
 $modo_edicion = false;
-$publicacion = ['id' => '', 'titulo' => '', 'descripcion' => '', 'tipo' => 'anuncio', 'link_externo' => ''];
+$publicacion = ['id' => '', 'titulo' => '', 'descripcion' => '', 'tipo' => 'anuncio', 'link_externo' => '', 'imagen_url' => ''];
 
 if (isset($_GET['editar'])) {
     $modo_edicion = true;
@@ -20,16 +28,19 @@ if (isset($_GET['editar'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $titulo = $_POST['titulo'];
-    $descripcion = $_POST['descripcion'];
+    if (!isset($_POST['form_token']) || !hash_equals($_SESSION['form_token'], $_POST['form_token'])) {
+        die("Error de validación: Intento de envío duplicado detectado.");
+    }
+    unset($_SESSION['form_token']);
+
+    $titulo = trim($_POST['titulo']);
+    $descripcion = trim($_POST['descripcion']);
     $tipo = $_POST['tipo'];
-    $link_externo = $_POST['link_externo'] ?? '';
+    $link_externo = trim($_POST['link_externo']) ?? '';
     $id_admin = $_SESSION['id'];
     $id_publicacion_post = $_POST['id'] ?? null;
+    $imagen_url = $publicacion['imagen_url'] ?? '';
 
-    $imagen_url = $publicacion['imagen_url'] ?? ''; // Mantener la imagen anterior por defecto
-
-    // Lógica para subir imagen
     if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] == 0) {
         $directorio_subida = '../assets/img/uploads/';
         $nombre_archivo = time() . '_' . basename($_FILES['imagen']['name']);
@@ -42,16 +53,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!isset($error)) {
-        if ($id_publicacion_post) { // Actualizar
+        if ($id_publicacion_post) {
+            // Lógica de ACTUALIZACIÓN
             $stmt = $conn->prepare("UPDATE publicaciones SET titulo = ?, descripcion = ?, tipo = ?, link_externo = ?, imagen_url = ? WHERE id = ?");
             $stmt->bind_param("sssssi", $titulo, $descripcion, $tipo, $link_externo, $imagen_url, $id_publicacion_post);
-            $mensaje = "Publicación actualizada correctamente.";
-        } else { // Insertar
+            $stmt->execute();
+        } else {
+            // Lógica de CREACIÓN
             $stmt = $conn->prepare("INSERT INTO publicaciones (titulo, descripcion, tipo, link_externo, imagen_url, creado_por) VALUES (?, ?, ?, ?, ?, ?)");
             $stmt->bind_param("sssssi", $titulo, $descripcion, $tipo, $link_externo, $imagen_url, $id_admin);
-            $mensaje = "Publicación creada correctamente.";
+            $stmt->execute();
+
+            // --- CÓDIGO PARA GENERAR NOTIFICACIONES ---
+            $id_nueva_publicacion = $conn->insert_id;
+            $result_usuarios = $conn->query("SELECT id FROM usuarios WHERE rol = 'usuario'");
+            if ($result_usuarios->num_rows > 0) {
+                $stmt_notificacion = $conn->prepare("INSERT INTO notificaciones (id_usuario, id_publicacion) VALUES (?, ?)");
+                while ($usuario = $result_usuarios->fetch_assoc()) {
+                    $id_estudiante = $usuario['id'];
+                    $stmt_notificacion->bind_param("ii", $id_estudiante, $id_nueva_publicacion);
+                    $stmt_notificacion->execute();
+                }
+                $stmt_notificacion->close();
+            }
         }
-        $stmt->execute();
         header("Location: listar_publicaciones.php");
         exit();
     }
@@ -63,8 +88,10 @@ include('../includes/header.php');
 <div class="container mt-5" data-aos="fade-up">
     <h2><?= $page_title ?></h2>
     <?php if (isset($error)) echo "<div class='alert alert-danger'>$error</div>"; ?>
-    <form method="POST" enctype="multipart/form-data">
+    <form id="publicacionForm" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="form_token" value="<?= htmlspecialchars($token) ?>">
         <input type="hidden" name="id" value="<?= htmlspecialchars($publicacion['id']) ?>">
+
         <div class="mb-3">
             <label class="form-label">Título</label>
             <input type="text" name="titulo" class="form-control" value="<?= htmlspecialchars($publicacion['titulo']) ?>" required>
@@ -91,8 +118,8 @@ include('../includes/header.php');
         <div class="mb-3">
             <label class="form-label">Imagen</label>
             <input type="file" name="imagen" class="form-control" accept="image/*">
-            <?php if ($modo_edicion && $publicacion['imagen_url']): ?>
-                <small class="form-text text-muted">Imagen actual: <?= htmlspecialchars($publicacion['imagen_url']) ?>. Dejar en blanco para no cambiar.</small>
+            <?php if ($modo_edicion && !empty($publicacion['imagen_url'])): ?>
+                <small class="form-text text-muted">Imagen actual: <?= htmlspecialchars($publicacion['imagen_url']) ?>.</small>
             <?php endif; ?>
         </div>
         <button type="submit" class="btn btn-success"><i class="fas fa-save me-2"></i>Guardar Publicación</button>
@@ -100,3 +127,20 @@ include('../includes/header.php');
     </form>
 </div>
 <?php include('../includes/footer.php'); ?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+<script>AOS.init();</script>
+<script>
+  const form = document.getElementById('publicacionForm');
+  if (form) {
+    form.addEventListener('submit', function() {
+      const submitButton = form.querySelector('button[type="submit"]');
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
+      }
+    });
+  }
+</script>
+</body>
+</html>

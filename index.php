@@ -1,7 +1,9 @@
 <?php
 // Incluir la configuración de la base de datos
 include('config/db.php');
-
+require 'vendor/autoload.php';
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 // Iniciar la sesión para manejar las variables del usuario
 session_start();
 
@@ -19,8 +21,8 @@ $error = ''; // Variable para almacenar mensajes de error
 
 // Procesar el formulario solo si se envió usando el método POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $correo = $_POST['correo'];
-    $password = $_POST['password'];
+	$correo = trim($_POST['correo']);
+	$password = trim($_POST['password']);
 
     // Validar que los campos no estén vacíos
     if (empty($correo) || empty($password)) {
@@ -41,6 +43,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['id'] = $usuario['id'];
                 $_SESSION['nombre'] = $usuario['nombre'];
                 $_SESSION['rol'] = $usuario['rol'];
+		// --- INICIO: CÓDIGO PARA ENVIAR CORREO AL ESTUDIANTE ---
+    if ($usuario['rol'] === 'usuario') {
+        $mail = new PHPMailer(true);
+        try {
+            // Configuración del servidor (igual que en enviar_correos.php)
+            $mail->isSMTP();
+            $mail->Host       = 'smtp.gmail.com';
+            $mail->SMTPAuth   = true;
+            $mail->Username   = 'jairosantosm25@gmail.com';     // TU CORREO DE GMAIL
+            $mail->Password   = 'hzyf atdn mawd juvx';     // TU CONTRASEÑA DE APLICACIÓN
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+            $mail->Port       = 465;
+
+            // Remitente y Destinatario
+            $mail->setFrom('tu_correo@gmail.com', 'Facultad de Sistemas - UNDAC');
+            // Añadimos el correo y nombre del usuario que acaba de iniciar sesión
+            $mail->addAddress($usuario['correo'], $usuario['nombre']);
+
+            // Contenido del correo
+            $mail->isHTML(true);
+            $mail->Subject = 'Notificación de Inicio de Sesión';
+            $mail->Body    = "
+                <div style='font-family: Arial, sans-serif;'>
+                    <h3>Hola, " . htmlspecialchars($usuario['nombre']) . "</h3>
+                    <p>Te informamos que se ha iniciado sesión en tu cuenta en el portal de la Facultad de Sistemas.</p>
+                    <p>Si no reconoces esta actividad, por favor contacta al administrador.</p>
+                    <br>
+                    <p><em>Facultad de Ingeniería de Sistemas - UNDAC</em></p>
+                </div>";
+
+            $mail->send();
+        } catch (Exception $e) {
+            // Si el correo falla, no detenemos el login.
+            // Opcional: podrías guardar el error en un log si quisieras.
+            // error_log("No se pudo enviar correo de login a {$usuario['correo']}. Error: {$mail->ErrorInfo}");
+        }
+    }
+    // --- FIN: CÓDIGO PARA ENVIAR CORREO ---
                 
                 // Redirigir según el rol del usuario
                 if ($usuario['rol'] === 'admin') {
