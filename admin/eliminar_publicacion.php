@@ -1,13 +1,15 @@
 <?php
 session_start();
-// ... (verificación de sesión de admin) ...
+if (!isset($_SESSION['rol']) || $_SESSION['rol'] != 'admin') {
+    die("Acceso denegado.");
+}
 
 include('../config/db.php');
 
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
-    
-    // Opcional: Borrar el archivo de imagen del servidor
+
+    // Opcional pero recomendado: Borrar el archivo de imagen del servidor
     $stmt_select = $conn->prepare("SELECT imagen_url FROM publicaciones WHERE id = ?");
     $stmt_select->bind_param("i", $id);
     $stmt_select->execute();
@@ -25,6 +27,6 @@ if (isset($_GET['id'])) {
     $stmt_delete->execute();
 }
 
-header("Location: listar_publicaciones.php");
+header("Location: listar_publicaciones.php?exito=eliminada");
 exit();
 ?>

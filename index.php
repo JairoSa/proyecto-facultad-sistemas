@@ -85,6 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Redirigir según el rol del usuario
                 if ($usuario['rol'] === 'admin') {
                     header("Location: admin/dashboard.php");
+                } elseif ($usuario['rol'] === 'docente') {
+                    header("Location: docente/dashboard.php");
                 } else {
                     header("Location: usuario/anuncios.php");
                 }
@@ -111,18 +113,18 @@ $conn->close();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
     
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=1.4">
 </head>
-<body class="login-bg">
+<body class="login-moderno-bg">
 
 <div class="container d-flex align-items-center justify-content-center min-vh-100">
   
-  <div class="card shadow-lg p-4 p-md-5 login-card" data-aos="zoom-in-up" data-aos-duration="1000">
-    <div class="card-body">
+  <div class="card login-card-moderno" data-aos="zoom-in-up">
       
       <div class="text-center mb-4">
-        <img src="assets/img/logo_undac.png" alt="Logo UNDAC" style="max-width: 120px;">
-        <h3 class="mt-3 text-primary fw-bold">Facultad de Sistemas - UNDAC</h3>
+        <img src="assets/documentos/logo_undac.png" alt="Logo UNDAC" class="login-logo">
+        <h3 class="mt-3 text-primary fw-bold">UNDAC - Facultad de</h3>
+       <h3 class="mt-3 text-primary fw-bold">Ing. de Sistemas y Computación</h3>
         <p class="text-muted">Sistema de Anuncios y Publicidad</p>
       </div>
 
